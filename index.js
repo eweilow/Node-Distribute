@@ -4,46 +4,26 @@ var fs = require("fs");
 
 var argv = optimist.argv;
 
-var defaultport = 8081;
+var config = require("./modules/config.js");
 
-var basefolder = path.join(__dirname, argv.basefolder || "./files");
-console.log("Files save to:", basefolder);
-if (!fs.existsSync(basefolder)) {
-  fs.mkdirSync(basefolder);
-}
 if (argv.node) {
-  var server = argv.server ||  "localhost:8081";
+  var cfg = config.readOrMake("./config/defaultnode.json", function () { 
+    return { port: 8081, host: "localhost", segmentation: 10, basepath: "./files/node", apikey: "" };
+  });
+  cfg = config.override(argv, cfg);
   
-  var spl = server.split(":");
-  var host = spl[0] || "localhost";
-  var port = parseInt(spl[1]) || defaultport;
+  var node = require("./modules/node/node_controller.js");
+  node.configuration(cfg);
+  node.connect();  
+  node.initialize();
+} else if(argv.master) {
+  var cfg = config.readOrMake("./config/defaultmaster.json", function () { 
+    return { port: 8081, basepath: "./files/master", keyfile: "./secret/keys.json", minimumretrytime: 100 };
+  });
+  cfg = config.override(argv, cfg);
   
-  var key = argv.apikey || "";
-  
-  console.log("Running as node, connecting to", host + ":" + port, "with api key:", key);
-  
-  var io = null;
-  var socket = null;
-  var node = null;
-  var repeat = function () {
-    if(!io) io = require('socket.io-client');
-    if (!socket) socket = io.connect("http://" + host + ":" + port, { query: "apikey=" + key });
-    else socket.connect();
-    if(!node) node = require("./node.js");
-    node.run(basefolder, socket);
-    
-    setTimeout(function () {
-      socket.disconnect();
-    }, argv.closedelay);    
-  }
-  
-  repeat();
-  setInterval(repeat, argv.repetitiondelay);
-  
-} else if (argv.master) {
-  var port = argv.port || defaultport;
-  console.log("Running as master on port", port);
-  var io = require('socket.io')(port);
-  var master = require("./master.js");
-  master.run(basefolder, io);
+  var master = require("./modules/master/master_controller.js");
+  master.configuration(cfg);
+  master.listen();  
+  master.initialize();
 }

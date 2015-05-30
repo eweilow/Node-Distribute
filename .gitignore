@@ -29,5 +29,6 @@ node_modules
 files/
 typings/
 secret/
+config/
 
 .DS_Store
