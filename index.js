@@ -26,4 +26,9 @@ if (argv.node) {
   master.configuration(cfg);
   master.listen();  
   master.initialize();
+} else if (argv.test) {
+  var manifestor = require("./modules/manifestor.js");
+  if (argv.test === "quickinfo") {
+    console.log(manifestor.getQuickInfo(argv.path));
+  }
 }
