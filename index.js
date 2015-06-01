@@ -27,8 +27,26 @@ if (argv.node) {
   master.listen();  
   master.initialize();
 } else if (argv.test) {
-  var manifestor = require("./modules/manifestor.js");
-  if (argv.test === "quickinfo") {
-    console.log(manifestor.getQuickInfo(argv.path));
-  }
+  var repository = require("./modules/repository.js")("files/node", [".manifest"]);
+  repository.getFiles(function (err, data) {
+    console.log(data);
+    repository.getFileAsJson(data[0], function (err, data) {
+      console.log("File data as JSON:", data);
+    });
+    repository.exists("whatisthis.d", function (exists) {
+      console.log("Does whatisthis.d exist:", exists);
+    });
+    repository.exists("moretext.manifest", function (exists) {
+      console.log("Does moretext.manifest exist:", exists);
+    });
+    repository.getLastModified("moretext.manifest", function (err, data) {
+      console.log("Last modified", data);
+    });
+    
+    repository.saveFile("whatisthis.manifest", "{}", function (err) {
+      if (err) console.error(err);
+      else console.log("Saved file");
+    })
+  });
+ 
 }
