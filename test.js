@@ -16,6 +16,13 @@ if (argv.node) {
   node.configuration(cfg);
   node.connect();  
   node.initialize();
+  
+  setInterval(function () {
+    node.connect();
+    setTimeout(function () {
+      node.disconnect();
+    }, 1000);
+  }, 2000);
 } else if(argv.master) {
   var cfg = config.readOrMake("./config/defaultmaster.json", function () { 
     return { port: 8081, basepath: "./files/master", keyfile: "./secret/keys.json", minimumretrytime: 100 };
