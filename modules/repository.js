@@ -3,13 +3,14 @@ var path = require("path");
 var mkdirp = require("mkdirp");
 var util = require("util");
 
-var manifestFile = ".manifest";
-
 module.exports = function (f, a) {
   var retval = {};
-  var allowed = a ||  [];
+  var allowed = a || [];
   
   var folder = path.resolve(f);  
+  
+  mkdirp(folder);
+  
   retval.getFolder = function () { return folder; }
   
   retval.getFiles = function (callback) {
