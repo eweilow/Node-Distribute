@@ -42,10 +42,9 @@ if (argv.node) {
     repository.getLastModified("moretext.manifest", function (err, data) {
       console.log("Last modified", data);
     });
-    
-    repository.saveFile("whatisthis.manifest", "{}", function (err) {
+    repository.saveFileWithDate("whatisthis.manifest", new Date(5), "{}", function (err) {
       if (err) console.error(err);
-      else console.log("Saved file");
+      else console.log("Saved file as ", new Date(5));
     })
   });
  

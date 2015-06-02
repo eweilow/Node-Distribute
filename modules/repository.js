@@ -68,11 +68,27 @@ module.exports = function (f, a) {
   retval.saveFile = function (name, str, callback) {
     fs.writeFile(retval.normalize(name), str, callback);
   };
+  retval.saveFileWithDate = function (name, date, str, callback) {
+    var p = retval.normalize(name);
+    fs.writeFile(p, str, function (err) {
+      if (err) return callback(err);
+      fs.utimes(p, new Date(), date, function (err) {
+        callback(err);
+      });
+    });
+  };
   
   retval.saveFileAsJson = function (name, data, callback) {
     retval.saveFile(name, JSON.stringify(data), callback);
   };
   
+    
+  retval.isNewer = function(name, date, callback) {
+    retval.getLastModifies(name, function (err, time) {
+      return time.getTime() < date.getTime(); 
+    });
+  };
+    
   
   return retval;
 };
