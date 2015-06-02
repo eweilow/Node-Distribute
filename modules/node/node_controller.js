@@ -4,6 +4,8 @@ var io = require("socket.io-client");
 var path = require("path");
 var socket = null;
 
+var offsite = {};
+
 module.exports.configuration = function (options) {
   config = options;
 };
@@ -33,7 +35,6 @@ module.exports.initialize = function () {
   });
   
   socket.on("fetch_file", function (data) {
-    console.log("Files", data, data.name);
     repository.getFile(data.name, function (err, filedata) {
       if (err) return console.error(err);
       repository.getLastModified(data.name, function (err, date) {
@@ -46,25 +47,48 @@ module.exports.initialize = function () {
   socket.emit("nodes", {}); 
   
   socket.on("nodes", function (data) {
-
+    for (var it in data) {
+      var node = data[it];
+      if (!offsite.hasOwnProperty(node.folder)) {
+        offsite[node.folder] = require("../repository.js")(path.join(config.basepath, "offsite", path.basename(node.folder)));
+      }
+      socket.emit("quickinfo", { node: node.folder });
+    }
   });
   
   socket.on("quickinfo_result", function (data) {
+    var node = data.node;
+    var offsiterepository = offsite[node];
+    
+    if (!offsiterepository) return console.error("No repository with that folder");
+    
     var keys = Object.keys(data.payload);
     
     var iterator = function (keys, index) {
       if (index >= keys.length) return;
       
       var name = keys[index];
-      repository.hasNewerOnDisk(name, new Date(data.payload[name].unix), function (err, state, a, b) {
+      offsiterepository.hasNewerOnDisk(name, new Date(data.payload[name].unix), function (err, state, a, b) {
         if (err) return console.error(err);
         if (!state) {
-          socket.emit("fetch_file", { name: name });
+          socket.emit("fetch_file", { node: node, name: name });
         }
       });
       iterator(keys, index + 1);
     };
     iterator(keys, 0);
+  });
+  
+  socket.on("file", function (data) {
+    var node = data.node;
+    var offsiterepository = offsite[node];    
+    if (!offsiterepository) return console.error("No repository with that folder");
+    
+    offsiterepository.saveFileWithDate(data.name, new Date(data.unix), data.payload, function (err) {
+
+      if (err) return console.error(err);
+      console.log("[Node] Saved file", data.name, "from", node);
+    });
   });
     /*
   repository.getSegmentedInfo(config.segmentation, function (err, fileinfo) {

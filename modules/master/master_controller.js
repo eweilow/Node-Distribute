@@ -4,6 +4,8 @@ var path = require("path");
 var nodes = {};
 var apikeys = {};
 
+var offsiterepositories = {};
+
 var config = {};
 var io = null;
 
@@ -27,7 +29,8 @@ module.exports.initialize = function () {
   
   for (var i = 0; i < keys.length; i++) {
     nodes[keys[i].folder] = { title: keys[i].title, folder: keys[i].folder };
-    apikeys[keys[i].apikey]  = nodes[keys[i].folder];
+    apikeys[keys[i].apikey] = nodes[keys[i].folder];
+    offsiterepositories[keys[i].folder] = require("../repository.js")(path.join(config.basepath, "offsite", keys[i].folder));
   }
   /*
   var manifestor = require("../manifestor.js");
@@ -57,7 +60,7 @@ module.exports.initialize = function () {
 
     socket.info = apikeys[handshakeData.apikey];
     socket.info.apikey = handshakeData.apikey;
-    socket.info.repository = require("../repository.js")(path.join(config.basepath, socket.info.folder));
+    socket.info.repository = offsiterepositories[socket.info.folder];
     next();
   });
   
@@ -107,63 +110,34 @@ var initializeSocket = function (socket) {
   
   /* Master to node traffic below */
   socket.on("nodes", function (data) {
-
-  });
-  
-  socket.on("quickinfo", function (data) {
-    repository.getSegmentedInfo(config.segmentation, function (err, fileinfo) {
-      for (var i = 0; i < fileinfo.length; i++) {
-        socket.emit("quickinfo_result", { payload: fileinfo[i] });
-      }
-    });
-  });
-  
-  
-  
-  /*
-  socket.emit("quickinfo", { offset: 0 });
-  socket.on("quickinfo_result", function (data) {
-    if (data.next) socket.emit("quickinfo", { offset: data.offset + 1 });
-    if (!data.current) return;
-
-    for (var i = 0; i < data.payload.length; i++) {
-      var name = data.payload[i].name;
-      if (!repository.existsSync(name) || !repository.hasNewer(name, new Date(data.payload[i].unix)) {
-        socket.emit("fetch_file", { name: data.payload[i].name });
-      }
-    }
-  });
-  
-  socket.on("nodes", function (data) {
     var res = [];
-    for (var i = 0; i < nodes.length; i++) {
-      if (nodes[i].folder === socket.info.folder) continue;
-      res.push(nodes[i]);
+    for (var key in nodes) {
+      if (nodes[key].folder === socket.info.folder) continue;
+      res.push(nodes[key]);
     }
     socket.emit("nodes", res);
   });
   
   socket.on("quickinfo", function (data) {
-    var manifests = manifestors[data.key].getQuickInfo(config.segmentation);
-    
-    var offset = data.offset || 0;
-    
-    var next = offset + 1 < manifests.length;
-    if (offset < 0 || offset >= manifests.length) {
-      socket.emit("quickinfo_result", { key: data.key, offset: offset, current: false, next: next });
-    }
-    
-    
-    var slice = manifests[offset];
-    socket.emit("quickinfo_result", { key: data.key, offset: offset, current: true, next: next, payload: slice });
-  });
-  socket.on("fetch_manifest", function (data) {
-    console.log(data);
-    socket.emit("manifest_result", { key: data.key, name: data.name, payload: manifestors[data.key].getManifest(data.name)});
+    var folder = data.node;
+    var offsiterepository = offsiterepositories[folder];
+    offsiterepository.getSegmentedInfo(config.segmentation, function (err, fileinfo) {
+      for (var i = 0; i < fileinfo.length; i++) {
+        socket.emit("quickinfo_result", { node: folder, payload: fileinfo[i] });
+      }
+    });  
   });
   
-  socket.on("manifest_result", function (data) {
-    console.log("Saving");
-    manifestor.save(data.name, data.payload);
-  });*/
+  socket.on("fetch_file", function (data) {
+    console.log(data);
+    var folder = data.node;
+    var offsiterepository = offsiterepositories[folder];
+    offsiterepository.getFile(data.name, function (err, filedata) {
+      if (err) return console.error(err);
+      offsiterepository.getLastModified(data.name, function (err, date) {
+        if (err) return console.error(err);
+        socket.emit("file", { node:folder, name: data.name, unix: date.getTime(), payload: filedata });
+      });
+    });
+  });
 };

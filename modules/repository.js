@@ -25,7 +25,6 @@ module.exports = function (f, a) {
           }
         }
       }
-      console.log(ret);
       callback(err, ret);
     });
   };
@@ -42,7 +41,6 @@ module.exports = function (f, a) {
           }
         }
       }
-      console.log(ret);
       callback(err, ret);
     });
   };
