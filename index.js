@@ -42,6 +42,12 @@ if (argv.node) {
     repository.getLastModified("moretext.manifest", function (err, data) {
       console.log("Last modified", data);
     });
+    repository.getSegmentedInfo(2, function (err, data) {
+      console.log("Segmented:", data);
+    });
+    repository.getSegmentedInfo(0, function (err, data) {
+      console.log("Unsegmented:", data);
+    });
     repository.saveFileWithDate("whatisthis.manifest", new Date(5), "{}", function (err) {
       if (err) console.error(err);
       else console.log("Saved file as ", new Date(5));

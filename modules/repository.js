@@ -25,16 +25,38 @@ module.exports = function (f, a) {
           }
         }
       }
+      console.log(ret);
+      callback(err, ret);
+    });
+  };
+  
+  retval.getKeyedFiles = function (callback) {
+    fs.readdir(folder, function (err, files) {
+      if (err) return callback(err, []);
+
+      var ret = [];
+      for (var i = 0; i < files.length; i++) {
+        if (path.extname(files[i]).length > 1) {
+          if (allowed.length === 0 || allowed.indexOf(path.extname(files[i])) >= 0) {
+            ret.push(files[i]);
+          }
+        }
+      }
+      console.log(ret);
       callback(err, ret);
     });
   };
   
   retval.normalize = function (filename) {
     return path.join(folder, path.basename(filename));
-  }
+  };
   
   retval.exists = function (name, callback) {
     fs.exists(retval.normalize(name), function (exists) { callback(exists); });
+  };
+  
+  retval.existsSync = function (name) {
+    return fs.existsSync(retval.normalize(name));
   };
   
   retval.getFile = function (name, callback) {
@@ -73,9 +95,47 @@ module.exports = function (f, a) {
     var p = retval.normalize(name);
     fs.writeFile(p, str, function (err) {
       if (err) return callback(err);
-      fs.utimes(p, new Date(), date, function (err) {
+      fs.utimes(p, date, date, function (err) {
         callback(err);
       });
+    });
+  };
+  
+  retval.getSegmentedInfo = function (segment, callback) {
+    var segmentation = segment || 10;
+
+    retval.getFiles(function (err, files) {
+      if (err) callback(err, []);
+      
+      var iterator = function (files, index, manifests, cb) {
+        if (index >= files.length) return cb(manifests);
+        
+        retval.getLastModified(files[index], function (err, date) {
+          if (err) return callback(err, []);
+          manifests[files[index]] = { unix: date.getTime() };
+          iterator(files, index + 1, manifests, cb);
+        });
+      };
+      try {
+        iterator(files, 0, {}, function (fileinfo) {
+          if (segmentation <= 0) return callback(err, fileinfo);
+
+          var ret = [];
+          var keys = Object.keys(fileinfo);
+          for (var i = 0; i < keys.length; i += segmentation) {
+            var k = keys.slice(i, Math.min(i + segmentation, keys.length));
+            var vals = {};
+            for (var j = 0; j < k.length; j++) {
+              vals[k[j]] = fileinfo[k[j]];
+            }
+            ret.push(vals);
+          }
+          callback(err, ret);
+        });
+      } catch (error) {
+        callback(error, []);
+      }
+      
     });
   };
   
@@ -84,9 +144,12 @@ module.exports = function (f, a) {
   };
   
     
-  retval.isNewer = function(name, date, callback) {
-    retval.getLastModifies(name, function (err, time) {
-      return time.getTime() < date.getTime(); 
+  retval.hasNewerOnDisk = function (name, date, callback) {
+    if (!retval.existsSync(name)) return callback(null, false);
+    
+    retval.getLastModified(name, function (err, time) {
+      if (err) return callback(err, false);
+      callback(err, time.getTime() >= date.getTime(), time, date); 
     });
   };
     

@@ -22,52 +22,96 @@ module.exports.disconnect = function () {
 module.exports.initialize = function () {
   if (!socket) throw new Error("The socket is not created");
   
-  var basefolder = path.resolve(config.basepath);
-  var manifestor = require("../manifestor.js")(basefolder);
-    
-  var manifests = manifestor.getQuickInfo(config.segmentation);
+  var repository = require("../repository.js")(config.basepath, [".manifest", ".txt"]);
   
   socket.on("quickinfo", function (data) {
-    var offset = data.offset || 0;
-    
-    var next = offset + 1 < manifests.length;
-    if (offset < 0 || offset >= manifests.length) {
-      socket.emit("quickinfo_result", { offset: offset, current: false, next: next });
-    }
-    
-    var slice = manifests[offset];
-    socket.emit("quickinfo_result", { offset: offset, current: true, next: next, payload: slice });
+    repository.getSegmentedInfo(config.segmentation, function (err, fileinfo) {
+      for (var i = 0; i < fileinfo.length; i++) {
+        socket.emit("quickinfo_result", { payload: fileinfo[i] });
+      }
+    });
   });
   
-  socket.on("fetch_manifest", function (data) {
-    socket.emit("manifest_result", { name: data.name, payload: manifestor.getManifest(data.name)});
+  socket.on("fetch_file", function (data) {
+    console.log("Files", data, data.name);
+    repository.getFile(data.name, function (err, filedata) {
+      if (err) return console.error(err);
+      repository.getLastModified(data.name, function (err, date) {
+        if (err) return console.error(err);
+        socket.emit("file", { name: data.name, unix: date.getTime(), payload: filedata });
+      });
+    });
   });
+  
+  socket.emit("nodes", {}); 
+  
+  socket.on("nodes", function (data) {
 
-  var offsiteManifestors = {};
-  var quickInfoData = {};
-  socket.emit("nodes", {});
-  socket.on("nodes", function (nodes) {
-    for (var i = 0; i < nodes.length; i++) {
-      socket.emit("quickinfo", { offset: 0, key: nodes[i].folder });
-      
-      if (!offsiteManifestors.hasOwnProperty(nodes[i].folder)) {
-        offsiteManifestors[nodes[i].folder] = require("../manifestor.js")(path.join(config.basepath, path.basename(nodes[i].folder)));
-      }
-      quickInfoData[nodes[i].folder] = offsiteManifestors[nodes[i].folder].getKeyed();
-    }
   });
+  
   socket.on("quickinfo_result", function (data) {
-    if (data.next) socket.emit("quickinfo", { key: data.key, offset: data.offset + 1 });    
-    if (!data.current) return;
+    var keys = Object.keys(data.payload);
     
-    for (var i = 0; i < data.payload.length; i++) {
-      if (!quickInfoData[data.key].hasOwnProperty(data.payload[i].name) || offsiteManifestors[data.key].needNew(quickInfoData[data.key][data.payload[i].name], data.payload[i])) {
-        socket.emit("fetch_manifest", { key: data.key, name: data.payload[i].name });
+    var iterator = function (keys, index) {
+      if (index >= keys.length) return;
+      
+      var name = keys[index];
+      repository.hasNewerOnDisk(name, new Date(data.payload[name].unix), function (err, state, a, b) {
+        if (err) return console.error(err);
+        if (!state) {
+          socket.emit("fetch_file", { name: name });
+        }
+      });
+      iterator(keys, index + 1);
+    };
+    iterator(keys, 0);
+  });
+    /*
+  repository.getSegmentedInfo(config.segmentation, function (err, fileinfo) {
+    if (err) return console.error(err);
+    
+    socket.on("quickinfo", function (data) {
+      var offset = data.offset || 0;
+
+      var next = offset + 1 < fileinfo.length;
+      if (offset < 0 || offset >= fileinfo.length) {
+        socket.emit("quickinfo_result", { offset: offset, current: false, next: next });
       }
-    }
-  });
-  socket.on("manifest_result", function (data) {
-    console.log("Saving");
-    offsiteManifestors[data.key].save(data.name, data.payload);
-  });
+
+      var slice = fileinfo[offset];
+      socket.emit("quickinfo_result", { offset: offset, current: true, next: next, payload: slice });
+    });
+
+    socket.on("fetch_file", function (data) {
+      socket.emit("file_result", { name: data.name, payload: repository.get(data.name) });
+    });
+
+    var offsiteManifestors = {};
+    var quickInfoData = {};
+    socket.emit("nodes", {});
+    socket.on("nodes", function (nodes) {
+      for (var i = 0; i < nodes.length; i++) {
+        socket.emit("quickinfo", { offset: 0, key: nodes[i].folder });
+
+        if (!offsiteManifestors.hasOwnProperty(nodes[i].folder)) {
+          offsiteManifestors[nodes[i].folder] = require("../manifestor.js")(path.join(config.basepath, path.basename(nodes[i].folder)));
+        }
+        quickInfoData[nodes[i].folder] = offsiteManifestors[nodes[i].folder].getKeyed();
+      }
+    });
+    socket.on("quickinfo_result", function (data) {
+      if (data.next) socket.emit("quickinfo", { key: data.key, offset: data.offset + 1 });
+      if (!data.current) return;
+
+      for (var i = 0; i < data.payload.length; i++) {
+        if (!quickInfoData[data.key].hasOwnProperty(data.payload[i].name) || offsiteManifestors[data.key].needNew(quickInfoData[data.key][data.payload[i].name], data.payload[i])) {
+          socket.emit("fetch_manifest", { key: data.key, name: data.payload[i].name });
+        }
+      }
+    });
+    socket.on("manifest_result", function (data) {
+      console.log("Saving");
+      offsiteManifestors[data.key].save(data.name, data.payload);
+    });
+  });*/
 };

@@ -1,8 +1,9 @@
 var fs = require("fs");
 var path = require("path");
 
+var nodes = {};
 var apikeys = {};
-var nodes = [];
+
 var config = {};
 var io = null;
 
@@ -23,6 +24,12 @@ module.exports.initialize = function () {
   var timings = {};
   
   var keys = JSON.parse(fs.readFileSync(path.resolve(config.keyfile)).toString());
+  
+  for (var i = 0; i < keys.length; i++) {
+    nodes[keys[i].folder] = { title: keys[i].title, folder: keys[i].folder };
+    apikeys[keys[i].apikey]  = nodes[keys[i].folder];
+  }
+  /*
   var manifestor = require("../manifestor.js");
   for (var i = 0; i < keys.length; i++) {
     var node = keys[i];
@@ -32,6 +39,7 @@ module.exports.initialize = function () {
     apikeys[node.apikey]  = node;
   }
   console.log(Object.keys(manifestors));
+  */
   
   io.use(function (socket, next) {
     var ip = socket.client.conn.remoteAddress;
@@ -49,7 +57,7 @@ module.exports.initialize = function () {
 
     socket.info = apikeys[handshakeData.apikey];
     socket.info.apikey = handshakeData.apikey;
-    socket.info.manifestor = manifestors[socket.info.folder];
+    socket.info.repository = require("../repository.js")(path.join(config.basepath, socket.info.folder));
     next();
   });
   
@@ -60,22 +68,68 @@ module.exports.initialize = function () {
 };
 
 var initializeSocket = function (socket) {
-  var manifestor = socket.info.manifestor;
-  console.log("[Master]", socket.info.title, "connected");
+  var repository = socket.info.repository;
   
+  console.log("[Master]", socket.info.title, "connected");
+
   socket.on("disconnect", function () {
     console.log("[Master]", socket.info.title, "disconnected");
   });
   
-  var quickInfo = manifestor.getKeyed();
+  /* Node to master traffic below */
+  socket.emit("quickinfo", {});
+  
+  socket.on("quickinfo_result", function (data) {
+    var keys = Object.keys(data.payload);
+    
+    var iterator = function (keys, index) {
+      if (index >= keys.length) return;
+      
+      var name = keys[index];
+      repository.hasNewerOnDisk(name, new Date(data.payload[name].unix), function (err, state, a, b) {
+        if (err) return console.error(err);
+        if (!state) {
+          socket.emit("fetch_file", { name: name });
+        }
+      });
+      iterator(keys, index + 1);
+    };
+    iterator(keys, 0);
+  });
+  
+  socket.on("file", function (data) {
+    repository.saveFileWithDate(data.name, new Date(data.unix), data.payload, function (err) {
+
+      if (err) return console.error(err);
+      console.log("[Master] Saved file", data.name, "from", socket.info.title);
+    });
+  });
+  
+  /* Master to node traffic below */
+  socket.on("nodes", function (data) {
+
+  });
+  
+  socket.on("quickinfo", function (data) {
+    repository.getSegmentedInfo(config.segmentation, function (err, fileinfo) {
+      for (var i = 0; i < fileinfo.length; i++) {
+        socket.emit("quickinfo_result", { payload: fileinfo[i] });
+      }
+    });
+  });
+  
+  
+  
+  /*
   socket.emit("quickinfo", { offset: 0 });
   socket.on("quickinfo_result", function (data) {
-    if (data.next) socket.emit("quickinfo", { offset: data.offset + 1 });    
+    if (data.next) socket.emit("quickinfo", { offset: data.offset + 1 });
     if (!data.current) return;
-    
+
     for (var i = 0; i < data.payload.length; i++) {
-      if (!quickInfo.hasOwnProperty(data.payload[i].name) || manifestor.needNew(quickInfo[data.payload[i].name], data.payload[i])) {
-        socket.emit("fetch_manifest", { name: data.payload[i].name });
+      var name = data.payload[i].name;
+      if (!repository.existsSync(name) || !repository.hasNewer(name, new Date(data.payload[i].unix)) {
+        socket.emit("fetch_file", { name: data.payload[i].name });
       }
     }
   });
@@ -111,5 +165,5 @@ var initializeSocket = function (socket) {
   socket.on("manifest_result", function (data) {
     console.log("Saving");
     manifestor.save(data.name, data.payload);
-  });
+  });*/
 };
