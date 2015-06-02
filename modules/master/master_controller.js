@@ -76,6 +76,7 @@ var initializeSocket = function (socket) {
   console.log("[Master]", socket.info.title, "connected");
 
   socket.on("disconnect", function () {
+    socket.disconnected = true;
     console.log("[Master]", socket.info.title, "disconnected");
   });
   
@@ -83,6 +84,8 @@ var initializeSocket = function (socket) {
   socket.emit("quickinfo", {});
   
   socket.on("quickinfo_result", function (data) {
+    if (socket.disconnected) return; 
+    
     var keys = Object.keys(data.payload);
     
     var iterator = function (keys, index) {
@@ -92,6 +95,7 @@ var initializeSocket = function (socket) {
       repository.hasNewerOnDisk(name, new Date(data.payload[name].unix), function (err, state, a, b) {
         if (err) return console.error(err);
         if (!state) {
+          if (socket.disconnected) return; 
           socket.emit("fetch_file", { name: name });
         }
       });
@@ -101,6 +105,8 @@ var initializeSocket = function (socket) {
   });
   
   socket.on("file", function (data) {
+    if (socket.disconnected) return; 
+    
     repository.saveFileWithDate(data.name, new Date(data.unix), data.payload, function (err) {
 
       if (err) return console.error(err);
@@ -110,32 +116,40 @@ var initializeSocket = function (socket) {
   
   /* Master to node traffic below */
   socket.on("nodes", function (data) {
+    if (socket.disconnected) return; 
+    
     var res = [];
     for (var key in nodes) {
       if (nodes[key].folder === socket.info.folder) continue;
       res.push(nodes[key]);
     }
+    if (socket.disconnected) return; 
     socket.emit("nodes", res);
   });
   
   socket.on("quickinfo", function (data) {
+    if (socket.disconnected) return; 
+    
     var folder = data.node;
     var offsiterepository = offsiterepositories[folder];
     offsiterepository.getSegmentedInfo(config.segmentation, function (err, fileinfo) {
       for (var i = 0; i < fileinfo.length; i++) {
+        if (socket.disconnected) return; 
         socket.emit("quickinfo_result", { node: folder, payload: fileinfo[i] });
       }
     });  
   });
   
   socket.on("fetch_file", function (data) {
-    console.log(data);
+    if (socket.disconnected) return; 
+    
     var folder = data.node;
     var offsiterepository = offsiterepositories[folder];
     offsiterepository.getFile(data.name, function (err, filedata) {
       if (err) return console.error(err);
       offsiterepository.getLastModified(data.name, function (err, date) {
         if (err) return console.error(err);
+        if (socket.disconnected) return; 
         socket.emit("file", { node:folder, name: data.name, unix: date.getTime(), payload: filedata });
       });
     });

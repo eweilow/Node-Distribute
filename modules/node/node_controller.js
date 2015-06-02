@@ -21,8 +21,11 @@ module.exports.disconnect = function () {
   socket.disconnect();
 };
 
+var initialized = false;
 module.exports.initialize = function () {
-  if (!socket) throw new Error("The socket is not created");
+  if (!socket) throw new Error("The socket is not created");  
+  if (initialized) throw new Error("Already initialized!");
+  initialized = true;
   
   var repository = require("../repository.js")(config.basepath, [".manifest", ".txt"]);
   
