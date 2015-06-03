@@ -28,6 +28,22 @@ module.exports = function (f, a) {
       callback(err, ret);
     });
   };
+  retval.getFilesOfType = function (types, callback) {
+    fs.readdir(folder, function (err, files) {
+      if (err) return callback(err, []);
+
+      var ret = [];
+      for (var i = 0; i < files.length; i++) {
+        if (path.extname(files[i]).length > 1) {
+          if ((allowed.length === 0 || allowed.indexOf(path.extname(files[i])) >= 0) && types.indexOf(path.extname(files[i])) >= 0) {
+            ret.push(files[i]);
+          }
+        }
+      }
+      callback(err, ret);
+    });
+  };
+  
   
   retval.getKeyedFiles = function (callback) {
     fs.readdir(folder, function (err, files) {
