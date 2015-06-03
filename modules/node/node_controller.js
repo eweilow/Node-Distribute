@@ -14,6 +14,8 @@ module.exports.connect = function () {
   console.log("[Node] Connecting to:", "http://" + config.host + ":" + config.port,"using apikey:", config.apikey);
   if (!socket) socket = io.connect("http://" + config.host + ":" + config.port, { query: "apikey=" + config.apikey });
   else socket.connect();
+  
+  socket.emit("nodes", {}); 
 };
 
 module.exports.disconnect = function () {
@@ -46,8 +48,6 @@ module.exports.initialize = function () {
       });
     });
   });
-  
-  socket.emit("nodes", {}); 
   
   socket.on("nodes", function (data) {
     for (var it in data) {
