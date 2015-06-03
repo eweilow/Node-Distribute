@@ -73,11 +73,11 @@ module.exports.initialize = function () {
 var initializeSocket = function (socket) {
   var repository = socket.info.repository;
   
-  console.log("[Master]", socket.info.title, "connected");
+  if(config.debugmessages) console.log("[Master]", socket.info.title, "connected");
 
   socket.on("disconnect", function () {
     socket.disconnected = true;
-    console.log("[Master]", socket.info.title, "disconnected");
+    if(config.debugmessages) console.log("[Master]", socket.info.title, "disconnected");
   });
   
   /* Node to master traffic below */

@@ -51,6 +51,7 @@ A node instance takes the following configuration parameters in its' `configurat
 * `basepath` - Sets the path relative to root where files are stored.
 * `apikey` - Set the apikey which the node authenticates with.
 * `allowedfiletypes` - An array of file-types (Looking like ´.txt´ with the preceding dot included) an instance is allowed to manage.
+* `debugmessages` - Sets if debug messages are shown.
 
 ## Creating a master server
 ```javascript
@@ -73,6 +74,7 @@ A master instance takes the following configuration parameters in its' `configur
 * `keyfile` - Relative path to root where your api-keys are stored.
 * `minimumretrytime` - Set the minimum amount of time between connects from one ip that doesn't drop them.
 * `allowedfiletypes` - An array of file-types (Looking like ´.txt´ with the preceding dot included) an instance is allowed to manage.
+* `debugmessages` - Sets if debug messages are shown.
 
 #### Keyfile
 The keyfile is a file defined like the example below providing api-keys for the node instances to use when connecting to the master instance:

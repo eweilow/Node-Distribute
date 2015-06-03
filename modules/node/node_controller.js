@@ -11,7 +11,7 @@ module.exports.configuration = function (options) {
 };
 
 module.exports.connect = function () {
-  console.log("[Node] Connecting to:", "http://" + config.host + ":" + config.port,"using apikey:", config.apikey);
+  if(config.debugmessages) console.log("[Node] Connecting to:", "http://" + config.host + ":" + config.port,"using apikey:", config.apikey);
   if (!socket) socket = io.connect("http://" + config.host + ":" + config.port, { query: "apikey=" + config.apikey });
   else socket.connect();
   
@@ -19,7 +19,7 @@ module.exports.connect = function () {
 };
 
 module.exports.disconnect = function () {
-  console.log("[Node] Disconnecting.");
+  if(config.debugmessages) console.log("[Node] Disconnecting.");
   socket.disconnect();
 };
 
