@@ -4,10 +4,16 @@ var io = require("socket.io-client");
 var path = require("path");
 var socket = null;
 
-var offsite = {};
+var offsite = {}; 
+var repository = null;
 
 module.exports.configuration = function (options) {
   config = options;
+};
+
+module.exports.repositories = function (what) {
+  if (what === "offsite") return offsite;
+  else return repository;
 };
 
 module.exports.connect = function () {
@@ -29,7 +35,7 @@ module.exports.initialize = function () {
   if (initialized) throw new Error("Already initialized!");
   initialized = true;
   
-  var repository = require("../repository.js")(config.basepath, config.allowedfiletypes || []);
+  repository = require("../repository.js")(config.basepath, config.allowedfiletypes || []);
   
   socket.on("quickinfo", function (data) {
     repository.getSegmentedInfo(config.segmentation, function (err, fileinfo) {
