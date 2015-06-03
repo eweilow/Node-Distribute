@@ -121,7 +121,7 @@ var initializeSocket = function (socket) {
     var res = [];
     for (var key in nodes) {
       if (nodes[key].folder === socket.info.folder) continue;
-      res.push(nodes[key]);
+      res.push({ title: nodes[key].title, folder: nodes[key].folder });
     }
     if (socket.disconnected) return; 
     socket.emit("nodes", res);
