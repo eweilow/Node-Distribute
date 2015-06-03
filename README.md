@@ -8,7 +8,8 @@ node-file-distribution is a project for distributing files over the network betw
 
 ## Creating a node server
 ```javascript
-var cfg = require("file-distribution").config.readOrMake("./config/defaultnode.json", function () { 
+var config = require("file-distribution").config;
+var cfg = config.readOrMake("./config/defaultnode.json", function () { 
   return { port: 8081, host: "localhost", segmentation: 10, basepath: "./files/node", apikey: "" };
 });
 cfg = config.override(argv, cfg);
@@ -49,6 +50,7 @@ A node instance takes the following configuration parameters in its' `configurat
 * `segmentation` - Sets the count of timestamp data that is sent for each message.
 * `basepath` - Sets the path relative to root where files are stored.
 * `apikey` - Set the apikey which the node authenticates with.
+* `allowedfiletypes` - An array of file-types (Looking like ´.txt´ with the preceding dot included) an instance is allowed to manage.
 
 ## Creating a master server
 ```javascript
@@ -70,6 +72,7 @@ A master instance takes the following configuration parameters in its' `configur
 * `basepath` - Sets the path relative to root where files are stored.
 * `keyfile` - Relative path to root where your api-keys are stored.
 * `minimumretrytime` - Set the minimum amount of time between connects from one ip that doesn't drop them.
+* `allowedfiletypes` - An array of file-types (Looking like ´.txt´ with the preceding dot included) an instance is allowed to manage.
 
 #### Keyfile
 The keyfile is a file defined like the example below providing api-keys for the node instances to use when connecting to the master instance:

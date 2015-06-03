@@ -8,7 +8,7 @@ var config = require("./modules/config.js");
 
 if (argv.node) {
   var cfg = config.readOrMake("./config/defaultnode.json", function () { 
-    return { port: 8081, host: "localhost", segmentation: 10, basepath: "./files/node", apikey: "" };
+    return { port: 8081, host: "localhost", segmentation: 10, basepath: "./files/node", apikey: "", allowedfiletypes: [".manifest"] };
   });
   cfg = config.override(argv, cfg);
   
@@ -25,7 +25,7 @@ if (argv.node) {
   }, 2000);
 } else if(argv.master) {
   var cfg = config.readOrMake("./config/defaultmaster.json", function () { 
-    return { port: 8081, basepath: "./files/master", keyfile: "./secret/keys.json", minimumretrytime: 100 };
+    return { port: 8081, basepath: "./files/master", keyfile: "./secret/keys.json", minimumretrytime: 100, allowedfiletypes: [".manifest"] };
   });
   cfg = config.override(argv, cfg);
   

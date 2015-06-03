@@ -30,7 +30,7 @@ module.exports.initialize = function () {
   for (var i = 0; i < keys.length; i++) {
     nodes[keys[i].folder] = { title: keys[i].title, folder: keys[i].folder };
     apikeys[keys[i].apikey] = nodes[keys[i].folder];
-    offsiterepositories[keys[i].folder] = require("../repository.js")(path.join(config.basepath, "offsite", keys[i].folder));
+    offsiterepositories[keys[i].folder] = require("../repository.js")(path.join(config.basepath, "offsite", keys[i].folder), config.allowedfiletypes || []);
   }
   /*
   var manifestor = require("../manifestor.js");

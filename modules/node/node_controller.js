@@ -27,7 +27,7 @@ module.exports.initialize = function () {
   if (initialized) throw new Error("Already initialized!");
   initialized = true;
   
-  var repository = require("../repository.js")(config.basepath, [".manifest", ".txt"]);
+  var repository = require("../repository.js")(config.basepath, config.allowedfiletypes || []);
   
   socket.on("quickinfo", function (data) {
     repository.getSegmentedInfo(config.segmentation, function (err, fileinfo) {
