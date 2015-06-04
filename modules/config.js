@@ -6,7 +6,7 @@ module.exports.readOrMake = function (filepath, create) {
 
   var make = function (fullpath, data) {
     mkdirp.sync(path.dirname(fullpath));
-    fs.writeFileSync(fullpath, JSON.stringify(data));
+    fs.writeFileSync(fullpath, JSON.stringify(data, null, "\t"));
   };
 
   try {
