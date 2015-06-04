@@ -29,11 +29,10 @@ module.exports.readOrMake = function (filepath, create) {
 module.exports.override = function (argv, cfg) {
   var config = {};
   for (var key in cfg) {
-    if (argv.hasOwnProperty(key)) {
-      config[key] = argv[key];
-    } else {
-      config[key] = cfg[key];
-    }
+    config[key] = cfg[key];
+  }
+  for (var key in argv) {
+    config[key] = argv[key];
   }
   return config;
 }
