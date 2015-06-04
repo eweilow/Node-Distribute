@@ -9,15 +9,18 @@ module.exports.readOrMake = function (filepath, create) {
     fs.writeFileSync(fullpath, JSON.stringify(data, null, "\t"));
   };
 
+  var created = null;
   try {
+    created = create();
     var fullpath = path.resolve(filepath);
     
     var read = fs.existsSync(fullpath) ? JSON.parse(fs.readFileSync(fullpath).toString()) : {};
-    var data = module.exports.override(read, create());
+    var data = module.exports.override(read, created);
     make(fullpath, data);
     return data;
   } catch (error) {
-    throw error;
+    console.log(error);
+    return created;
   }
 };
 module.exports.override = function (argv, cfg) {
