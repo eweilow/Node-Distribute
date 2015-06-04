@@ -14,9 +14,12 @@ module.exports.readOrMake = function (filepath, create) {
     created = create();
     var fullpath = path.resolve(filepath);
     
+    if (!fs.existsSync(fullpath)) {
+      make();
+      return created;
+    }
     var read = fs.existsSync(fullpath) ? JSON.parse(fs.readFileSync(fullpath).toString()) : {};
     var data = module.exports.override(read, created);
-    make(fullpath, data);
     return data;
   } catch (error) {
     console.log(error);
