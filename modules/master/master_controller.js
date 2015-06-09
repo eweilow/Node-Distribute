@@ -16,7 +16,7 @@ module.exports.configuration = function (options) {
 };
 
 module.exports.listen = function () {
-  console.log("[Master] Listening at port", config.port);
+  console.log("[Master] Listening on port", config.port);
   io = require("socket.io")(config.port);
 };
 
@@ -32,6 +32,7 @@ module.exports.initialize = function () {
     apikeys[keys[i].apikey] = nodes[keys[i].folder];
     offsiterepositories[keys[i].folder] = require("../repository.js")(path.join(config.basepath, "offsite", keys[i].folder), config.allowedfiletypes || []);
   }
+  if(config.debugmessages) console.log("[Master] Found", Object.keys(nodes).length, "nodes in keyfile");
   /*
   var manifestor = require("../manifestor.js");
   for (var i = 0; i < keys.length; i++) {
