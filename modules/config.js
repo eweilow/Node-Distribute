@@ -2,27 +2,28 @@ var fs = require("fs");
 var path = require("path");
 var mkdirp = require("mkdirp");
 
-module.exports.readOrMake = function (filepath, create) {
+module.exports.readOrMake = function (p, create) {
 
+  var filepath = path.resolve(p).toString();
   var make = function (fullpath, data) {
     mkdirp.sync(path.dirname(fullpath));
+    
     fs.writeFileSync(fullpath, JSON.stringify(data, null, "\t"));
   };
 
   var created = null;
   try {
     created = create();
-    var fullpath = path.resolve(filepath);
     
-    if (!fs.existsSync(fullpath)) {
-      make();
+    if (!fs.existsSync(filepath)) {
+      make(filepath, created);
       return created;
     }
-    var read = fs.existsSync(fullpath) ? JSON.parse(fs.readFileSync(fullpath).toString()) : {};
+    var read = fs.existsSync(filepath) ? JSON.parse(fs.readFileSync(filepath).toString()) : {};
     var data = module.exports.override(read, created);
     return data;
   } catch (error) {
-    console.log(error);
+    console.log(filepath, error.stack);
     return created;
   }
 };
